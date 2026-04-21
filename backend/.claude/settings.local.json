@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"http://localhost:3001/api/forecast?contrato=Open+Network\")",
+      "Bash(python3 -c ' *)",
+      "Bash(curl -s http://localhost:3001/api/dashboard)",
+      "Read(//Users/lohranrocha/Desktop/Codes/enel-crm/**)",
+      "Bash(sqlite3 data/enel_crm.db \"DELETE FROM metas WHERE contrato = 'Total';\")",
+      "Bash(sqlite3 data/enel_crm.db \"SELECT * FROM metas;\")",
+      "Bash(export PATH=\"/opt/homebrew/opt/node@24/bin:$PATH\")",
+      "Bash(node -e ' *)"
+    ]
+  }
+}

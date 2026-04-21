@@ -1,0 +1,36 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --blue-50: #E6F1FB; --blue-100: #B5D4F4; --blue-400: #378ADD; --blue-600: #185FA5; --blue-800: #0C447C;
+  --teal-50: #E1F5EE; --teal-400: #1D9E75; --teal-600: #0F6E56;
+  --amber-50: #FAEEDA; --amber-400: #BA7517; --amber-600: #854F0B;
+  --gray-50: #F8F8F6; --gray-100: #F1EFE8; --gray-200: #D3D1C7; --gray-400: #888780; --gray-600: #5F5E5A;
+  --green-50: #EAF3DE; --green-400: #639922; --green-600: #3B6D11;
+  --red-50: #FCEBEB; --red-400: #E24B4A; --red-600: #A32D2D;
+  --purple-50: #EEEDFE; --purple-400: #7F77DD; --purple-600: #534AB7;
+  --coral-400: #D85A30;
+  --sidebar-w: 220px;
+  --topbar-h: 52px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --border: 0.5px solid #E0DED7;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #1a1a18;
+  background: var(--gray-50);
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font-family: inherit; cursor: pointer; }
+input, select, textarea { font-family: inherit; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 3px; }
