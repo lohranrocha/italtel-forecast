@@ -7,10 +7,41 @@ let db: Database.Database;
 
 export function getDb(): Database.Database {
   if (!db) {
+    const t0 = Date.now();
+    console.log(`[db] abrindo ${DB_PATH}`);
     db = new Database(DB_PATH);
+    console.log(`[db] aberto em ${Date.now() - t0}ms`);
+
     db.pragma('journal_mode = WAL');
     db.pragma('foreign_keys = ON');
+    db.pragma('synchronous = NORMAL'); // mais rápido que FULL, seguro em WAL
+
+    // Consolida WAL no .db a cada startup para evitar arquivos db-wal/db-shm
+    // crescendo sem limite (sintoma típico quando o processo é morto no meio).
+    try {
+      const tCk = Date.now();
+      const r = db.pragma('wal_checkpoint(TRUNCATE)') as Array<{ busy: number; log: number; checkpointed: number }>;
+      console.log(`[db] wal_checkpoint em ${Date.now() - tCk}ms`, r[0]);
+    } catch (err) {
+      console.warn('[db] wal_checkpoint falhou (seguindo em frente):', err);
+    }
+
+    const tSchema = Date.now();
     initSchema(db);
+    console.log(`[db] initSchema em ${Date.now() - tSchema}ms`);
+
+    // Garante checkpoint final quando o processo termina normalmente.
+    const closeGracefully = () => {
+      try {
+        db.pragma('wal_checkpoint(TRUNCATE)');
+        db.close();
+      } catch {
+        /* ignore */
+      }
+      process.exit(0);
+    };
+    process.on('SIGINT', closeGracefully);
+    process.on('SIGTERM', closeGracefully);
   }
   return db;
 }
@@ -64,6 +95,15 @@ function initSchema(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_projetos_status ON projetos(status);
     CREATE INDEX IF NOT EXISTS idx_forecast_projeto ON forecast_mensal(projeto_id);
   `);
+
+  // Migrações incrementais para colunas adicionadas após criação inicial
+  for (const col of [
+    `ALTER TABLE projetos ADD COLUMN solicitante_cargo TEXT DEFAULT ''`,
+    `ALTER TABLE projetos ADD COLUMN solicitante_telefone TEXT DEFAULT ''`,
+    `ALTER TABLE projetos ADD COLUMN solicitante_email TEXT DEFAULT ''`,
+  ]) {
+    try { db.exec(col); } catch { /* coluna já existe */ }
+  }
 
   // Insert default targets if not exist
   const stmt = db.prepare(`INSERT OR IGNORE INTO metas (ano, contrato, target_ano) VALUES (?, ?, ?)`);

@@ -11,10 +11,10 @@ router.get('/', (_req: Request, res: Response) => {
   // Totals by regional (Open Network)
   const onByRegional = db.prepare(`
     SELECT regional,
-      SUM(valor_liq) as revenues,
+      SUM(CASE WHEN status != 'Closed Lost' THEN valor_liq ELSE 0 END) as revenues,
       SUM(CASE WHEN status IN ('Closed Win','Commit') THEN valor_liq ELSE 0 END) as bookings,
-      SUM(margem1 * valor_liq) / NULLIF(SUM(valor_liq), 0) as margem1_weighted,
-      SUM(margem2 * valor_liq) / NULLIF(SUM(valor_liq), 0) as margem2_weighted,
+      SUM(margem1 * CASE WHEN status != 'Closed Lost' THEN valor_liq ELSE 0 END) / NULLIF(SUM(CASE WHEN status != 'Closed Lost' THEN valor_liq ELSE 0 END), 0) as margem1_weighted,
+      SUM(margem2 * CASE WHEN status != 'Closed Lost' THEN valor_liq ELSE 0 END) / NULLIF(SUM(CASE WHEN status != 'Closed Lost' THEN valor_liq ELSE 0 END), 0) as margem2_weighted,
       COUNT(*) as total_projetos
     FROM projetos WHERE contrato = 'Open Network'
     GROUP BY regional ORDER BY regional
@@ -23,24 +23,24 @@ router.get('/', (_req: Request, res: Response) => {
   // Power Network total
   const pnTotal = db.prepare(`
     SELECT
-      SUM(valor_liq) as revenues,
+      SUM(CASE WHEN status != 'Closed Lost' THEN valor_liq ELSE 0 END) as revenues,
       SUM(CASE WHEN status = 'Closed Win' THEN valor_liq ELSE 0 END) as closed_win,
-      SUM(margem1 * valor_liq) / NULLIF(SUM(valor_liq), 0) as margem1_weighted,
-      SUM(margem2 * valor_liq) / NULLIF(SUM(valor_liq), 0) as margem2_weighted
+      SUM(margem1 * CASE WHEN status != 'Closed Lost' THEN valor_liq ELSE 0 END) / NULLIF(SUM(CASE WHEN status != 'Closed Lost' THEN valor_liq ELSE 0 END), 0) as margem1_weighted,
+      SUM(margem2 * CASE WHEN status != 'Closed Lost' THEN valor_liq ELSE 0 END) / NULLIF(SUM(CASE WHEN status != 'Closed Lost' THEN valor_liq ELSE 0 END), 0) as margem2_weighted
     FROM projetos WHERE contrato = 'Power Network'
   `).get() as { revenues: number; closed_win: number; margem1_weighted: number; margem2_weighted: number };
 
   // Grand totals
   const grandTotal = db.prepare(`
     SELECT
-      SUM(valor_liq) as total_liq,
+      SUM(CASE WHEN status != 'Closed Lost' THEN valor_liq ELSE 0 END) as total_liq,
       SUM(CASE WHEN status = 'Closed Win' THEN valor_liq ELSE 0 END) as closed_win,
       SUM(CASE WHEN status = 'Commit' THEN valor_liq ELSE 0 END) as total_commit,
       SUM(CASE WHEN status = 'Upside' THEN valor_liq ELSE 0 END) as upside,
       SUM(CASE WHEN status = 'Not Forecastable' THEN valor_liq ELSE 0 END) as not_forecastable,
       SUM(CASE WHEN status = 'Closed Lost' THEN valor_liq ELSE 0 END) as closed_lost,
-      SUM(margem1 * valor_liq) / NULLIF(SUM(valor_liq), 0) as margem1_weighted,
-      SUM(margem2 * valor_liq) / NULLIF(SUM(valor_liq), 0) as margem2_weighted
+      SUM(margem1 * CASE WHEN status != 'Closed Lost' THEN valor_liq ELSE 0 END) / NULLIF(SUM(CASE WHEN status != 'Closed Lost' THEN valor_liq ELSE 0 END), 0) as margem1_weighted,
+      SUM(margem2 * CASE WHEN status != 'Closed Lost' THEN valor_liq ELSE 0 END) / NULLIF(SUM(CASE WHEN status != 'Closed Lost' THEN valor_liq ELSE 0 END), 0) as margem2_weighted
     FROM projetos
   `).get();
 
@@ -105,32 +105,34 @@ router.get('/', (_req: Request, res: Response) => {
 router.get('/regionais', (_req: Request, res: Response) => {
   const db = getDb();
 
-  const regionais = db.prepare(`SELECT DISTINCT regional FROM projetos WHERE contrato = 'Open Network' ORDER BY regional`).all() as { regional: string }[];
+  const totalsRows = db.prepare(`
+    SELECT
+      regional,
+      SUM(valor_liq) as revenues,
+      SUM(margem2 * valor_liq) / NULLIF(SUM(valor_liq),0) as margem2_weighted,
+      SUM(CASE WHEN status IN ('Closed Win','Commit') THEN valor_liq ELSE 0 END) as bookings
+    FROM projetos WHERE contrato = 'Open Network'
+    GROUP BY regional ORDER BY regional
+  `).all() as { regional: string; revenues: number; margem2_weighted: number; bookings: number }[];
 
-  const result = regionais.map(({ regional }) => {
-    const totals = db.prepare(`
-      SELECT 
-        SUM(valor_liq) as revenues,
-        SUM(margem2 * valor_liq) / NULLIF(SUM(valor_liq),0) as margem2_weighted,
-        SUM(CASE WHEN status IN ('Closed Win','Commit') THEN valor_liq ELSE 0 END) as bookings
-      FROM projetos WHERE contrato = 'Open Network' AND regional = ?
-    `).get(regional) as { revenues: number; margem2_weighted: number; bookings: number };
+  const forecastRows = db.prepare(`
+    SELECT p.regional, f.mes, SUM(f.revenues) as revenues
+    FROM forecast_mensal f
+    JOIN projetos p ON p.id = f.projeto_id
+    WHERE p.contrato = 'Open Network'
+    GROUP BY p.regional, f.mes
+  `).all() as { regional: string; mes: string; revenues: number }[];
 
-    // Revenues per quarter
-    const forecastRows = db.prepare(`
-      SELECT f.mes, SUM(f.revenues) as revenues
-      FROM forecast_mensal f
-      JOIN projetos p ON p.id = f.projeto_id
-      WHERE p.regional = ? AND p.contrato = 'Open Network'
-      GROUP BY f.mes
-    `).all(regional) as { mes: string; revenues: number }[];
+  const result = totalsRows.map(totals => {
+    const regional = totals.regional;
+    const regionForecast = forecastRows.filter(r => r.regional === regional);
 
     const qRevs = Object.entries(QUARTERS).reduce((acc, [q, months]) => {
-      acc[q] = months.reduce((s, m) => s + (forecastRows.find(r => r.mes === m)?.revenues || 0), 0);
+      acc[q] = months.reduce((s, m) => s + (regionForecast.find(r => r.mes === m)?.revenues || 0), 0);
       return acc;
     }, {} as Record<string, number>);
 
-    return { regional, ...totals, ...qRevs };
+    return { ...totals, ...qRevs };
   });
 
   res.json(result);

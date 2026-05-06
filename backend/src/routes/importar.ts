@@ -2,7 +2,6 @@ import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import * as XLSX from 'xlsx';
 import { getDb } from '../database';
 import { MESES } from '../types';
 
@@ -20,6 +19,15 @@ function safeStr(v: unknown): string {
   if (v === null || v === undefined) return '';
   if (typeof v === 'number') return Number.isInteger(v) ? String(v) : String(v);
   return String(v).trim();
+}
+
+function safeBr(v: unknown): string {
+  if (v === null || v === undefined) return '';
+  if (typeof v === 'number') return v.toFixed(3);
+  const s = String(v).trim();
+  const n = parseFloat(s);
+  if (!isNaN(n) && /^[\d.]+$/.test(s)) return n.toFixed(3);
+  return s;
 }
 
 function normStatus(s: string): string {
@@ -43,7 +51,7 @@ function extractPipelineSheet(rows: unknown[][], contrato: 'Open Network' | 'Pow
     if (!oportunidade) continue;
     projects.push({
       contrato, status,
-      br: safeStr(row[2]), cf: safeFloat(row[3]),
+      br: safeBr(row[2]), cf: safeFloat(row[3]),
       regional: safeStr(row[4]), did: safeStr(row[5]),
       oportunidade,
       valor_liq: safeFloat(row[7]), valor_bruto: safeFloat(row[8]),
@@ -86,6 +94,8 @@ router.post('/', upload.single('file'), (req: Request, res: Response) => {
   if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
 
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const XLSX = require('xlsx') as typeof import('xlsx');
     const wb = XLSX.readFile(req.file.path, { cellDates: true, dense: true });
     fs.unlinkSync(req.file.path);
 
@@ -118,33 +128,40 @@ router.post('/', upload.single('file'), (req: Request, res: Response) => {
         @valor_liq, @valor_bruto, @po_pendente, @fob, @solicitante, @status_compra, @status_po, @margem1, @margem2)
     `);
 
+    const selectP = db.prepare(
+      `SELECT id FROM projetos WHERE br = ? AND oportunidade = ? AND contrato = ?`
+    );
+
+    const updateP = db.prepare(`
+      UPDATE projetos SET status=@status, regional=@regional, cf=@cf,
+        valor_liq=@valor_liq, valor_bruto=@valor_bruto, po_pendente=@po_pendente,
+        fob=@fob, solicitante=@solicitante, status_compra=@status_compra,
+        status_po=@status_po, margem1=@margem1, margem2=@margem2,
+        updated_at=datetime('now')
+      WHERE id=@id
+    `);
+
     const insertF = db.prepare(`
       INSERT OR REPLACE INTO forecast_mensal (projeto_id, mes, revenues)
       VALUES (?, ?, ?)
     `);
 
+    const deleteForecast = db.prepare(`DELETE FROM forecast_mensal`);
+    const deleteProjetos = db.prepare(`DELETE FROM projetos`);
+
     const upsert = db.transaction((projects: Record<string, unknown>[]) => {
       if (mode === 'replace') {
-        db.prepare(`DELETE FROM forecast_mensal`).run();
-        db.prepare(`DELETE FROM projetos`).run();
+        deleteForecast.run();
+        deleteProjetos.run();
       }
 
       for (const p of projects) {
-        const existing = db.prepare(
-          `SELECT id FROM projetos WHERE br = ? AND oportunidade = ? AND contrato = ?`
-        ).get(p.br, p.oportunidade, p.contrato) as { id: number } | undefined;
+        const existing = selectP.get(p.br, p.oportunidade, p.contrato) as { id: number } | undefined;
 
         let projetoId: number;
 
         if (existing) {
-          db.prepare(`
-            UPDATE projetos SET status=@status, regional=@regional, cf=@cf,
-              valor_liq=@valor_liq, valor_bruto=@valor_bruto, po_pendente=@po_pendente,
-              fob=@fob, solicitante=@solicitante, status_compra=@status_compra,
-              status_po=@status_po, margem1=@margem1, margem2=@margem2,
-              updated_at=datetime('now')
-            WHERE id=@id
-          `).run({ ...p, id: existing.id });
+          updateP.run({ ...p, id: existing.id });
           projetoId = existing.id;
           updated++;
         } else {

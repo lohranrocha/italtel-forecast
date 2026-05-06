@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { forecastApi } from '../utils/api';
-import { fmtBRL, fmtPct, fmtMargem } from '../utils/format';
+import { fmtBRL, fmtPct, fmtMargem, fmtBR } from '../utils/format';
 import { MESES, QUARTERS, REGIONAL_COLORS, STATUS_COLORS, type ForecastProjeto, type StatusProjeto } from '../types';
 import { SectionHeader, Card } from '../components/ui';
 
@@ -157,7 +157,7 @@ export default function ForecastPage() {
                     <td style={{ ...tdStyle, fontWeight: 500, position: 'sticky', left: 0, background: 'inherit', zIndex: 1, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {p.oportunidade}
                     </td>
-                    <td style={{ ...tdStyle, fontSize: 11, fontWeight: 600, color: 'var(--blue-700)', whiteSpace: 'nowrap' }}>{p.br || '—'}</td>
+                    <td style={{ ...tdStyle, fontSize: 11, fontWeight: 600, color: 'var(--blue-700)', whiteSpace: 'nowrap' }}>{fmtBR(p.br)}</td>
                     <td style={{ ...tdStyle, fontSize: 11, color: REGIONAL_COLORS[p.regional] || 'var(--gray-600)', fontWeight: 500 }}>{p.regional}</td>
                     <td style={{ ...tdStyle, whiteSpace: 'nowrap' }}>
                       {(() => {

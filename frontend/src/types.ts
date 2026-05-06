@@ -43,6 +43,9 @@ export interface Projeto {
   po_pendente: number;
   fob: number;
   solicitante: string;
+  solicitante_cargo: string;
+  solicitante_telefone: string;
+  solicitante_email: string;
   status_compra: string;
   status_po: string;
   margem1: number;

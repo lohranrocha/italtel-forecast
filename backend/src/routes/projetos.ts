@@ -47,6 +47,7 @@ router.post('/', (req: Request, res: Response) => {
   const {
     contrato, status, regional, br, did, oportunidade, cf,
     valor_liq, valor_bruto, po_pendente, fob, solicitante,
+    solicitante_cargo, solicitante_telefone, solicitante_email,
     status_compra, status_po, margem1, margem2, forecast
   } = req.body;
 
@@ -56,15 +57,17 @@ router.post('/', (req: Request, res: Response) => {
 
   const insertProjeto = db.prepare(`
     INSERT INTO projetos (contrato, status, regional, br, did, oportunidade, cf,
-      valor_liq, valor_bruto, po_pendente, fob, solicitante, status_compra, status_po, margem1, margem2)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      valor_liq, valor_bruto, po_pendente, fob, solicitante,
+      solicitante_cargo, solicitante_telefone, solicitante_email,
+      status_compra, status_po, margem1, margem2)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const result = insertProjeto.run(
     contrato, status, regional, br || '', did || '', oportunidade, cf || 0,
     valor_liq || 0, valor_bruto || 0, po_pendente || 0, fob || 0,
-    solicitante || '', status_compra || '', status_po || '',
-    margem1 || 0, margem2 || 0
+    solicitante || '', solicitante_cargo || '', solicitante_telefone || '', solicitante_email || '',
+    status_compra || '', status_po || '', margem1 || 0, margem2 || 0
   );
 
   const projetoId = result.lastInsertRowid;
@@ -96,6 +99,7 @@ router.put('/:id', (req: Request, res: Response) => {
   const {
     contrato, status, regional, br, did, oportunidade, cf,
     valor_liq, valor_bruto, po_pendente, fob, solicitante,
+    solicitante_cargo, solicitante_telefone, solicitante_email,
     status_compra, status_po, margem1, margem2, forecast
   } = req.body;
 
@@ -103,14 +107,15 @@ router.put('/:id', (req: Request, res: Response) => {
     UPDATE projetos SET
       contrato=?, status=?, regional=?, br=?, did=?, oportunidade=?, cf=?,
       valor_liq=?, valor_bruto=?, po_pendente=?, fob=?, solicitante=?,
+      solicitante_cargo=?, solicitante_telefone=?, solicitante_email=?,
       status_compra=?, status_po=?, margem1=?, margem2=?,
       updated_at=datetime('now')
     WHERE id=?
   `).run(
     contrato, status, regional, br || '', did || '', oportunidade, cf || 0,
     valor_liq || 0, valor_bruto || 0, po_pendente || 0, fob || 0,
-    solicitante || '', status_compra || '', status_po || '',
-    margem1 || 0, margem2 || 0, id
+    solicitante || '', solicitante_cargo || '', solicitante_telefone || '', solicitante_email || '',
+    status_compra || '', status_po || '', margem1 || 0, margem2 || 0, id
   );
 
   if (forecast && typeof forecast === 'object') {

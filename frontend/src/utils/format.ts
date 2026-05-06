@@ -22,3 +22,10 @@ export function fmtMargem(value: number): string {
 export function fmtCF(value: number): string {
   return `${Math.round(value * 100)}%`;
 }
+
+export function fmtBR(br: string): string {
+  if (!br) return '—';
+  const n = parseFloat(br);
+  if (isNaN(n)) return br;
+  return n.toFixed(3);
+}

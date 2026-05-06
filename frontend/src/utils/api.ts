@@ -1,7 +1,7 @@
 import axios from 'axios';
 import type { Projeto, DashboardData, ForecastProjeto } from '../types';
 
-const api = axios.create({ baseURL: '/api' });
+const api = axios.create({ baseURL: '/api', timeout: 10000 });
 
 export const projetosApi = {
   list: (params?: Record<string, string>) =>
@@ -36,5 +36,47 @@ export const importApi = {
     return api.post<{ success: boolean; inserted: number; updated: number; total: number; message: string }>(
       '/import', form, { headers: { 'Content-Type': 'multipart/form-data' } }
     ).then(r => r.data);
+  },
+};
+
+export type FupRawRow = {
+  rowNum: number; colA: string;
+  rev: (number | null)[]; m1: (number | null)[]; m2: (number | null)[];
+};
+export type FupPreviewRow = {
+  br: string; oportunidade: string | null; matched: boolean;
+  revenues: number[]; total_rev: number;
+  margem1_abs: number; margem2_abs: number;
+  margem1_pct: number; margem2_pct: number;
+  _raw: FupRawRow[];
+};
+
+export const importFupApi = {
+  preview: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return api.post<{ success: boolean; rows: FupPreviewRow[]; meses: string[] }>(
+      '/import-fup/preview', form, { headers: { 'Content-Type': 'multipart/form-data' } }
+    ).then(r => r.data);
+  },
+  confirm: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return api.post<{ success: boolean; updated: number; not_found: number; not_found_brs: string[]; message: string }>(
+      '/import-fup', form, { headers: { 'Content-Type': 'multipart/form-data' } }
+    ).then(r => r.data);
+  },
+};
+
+export const importPcrApi = {
+  upload: (file: File, contrato: 'Open Network' | 'Power Network') => {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('contrato', contrato);
+    return api.post<{
+      success: boolean; projeto_id: number; br: string; oportunidade: string;
+      regional: string; contrato: string; fob: number; margem: number;
+      valor_liq: number; valor_bruto: number; message: string;
+    }>('/import-pcr', form, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data);
   },
 };

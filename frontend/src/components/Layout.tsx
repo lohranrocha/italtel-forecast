@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import {
-  LayoutDashboard, TrendingUp, BarChart3, Upload, ChevronRight, Activity
+  LayoutDashboard, TrendingUp, BarChart3, Upload, ChevronRight, Activity, PieChart
 } from 'lucide-react';
 
-type Page = 'dashboard' | 'open-network' | 'power-network' | 'forecast' | 'importar';
+type Page = 'dashboard' | 'open-network' | 'power-network' | 'forecast' | 'quarters' | 'importar';
 
 interface LayoutProps {
-  children: (page: Page) => React.ReactNode;
+  children: (page: Page, setPage: (p: Page) => void) => React.ReactNode;
 }
 
 const NAV = [
@@ -14,6 +14,7 @@ const NAV = [
   { id: 'open-network' as Page, label: 'Open Network', icon: TrendingUp },
   { id: 'power-network' as Page, label: 'Power Network', icon: Activity },
   { id: 'forecast' as Page, label: 'Forecast Full Year', icon: BarChart3 },
+  { id: 'quarters' as Page, label: 'Detalhamento Quarters', icon: PieChart },
   { id: 'importar' as Page, label: 'Importar Excel', icon: Upload },
 ];
 
@@ -86,7 +87,7 @@ export default function Layout({ children }: LayoutProps) {
 
         {/* Content */}
         <main style={{ flex: 1, padding: 24, overflow: 'auto', minWidth: 0 }}>
-          {children(page)}
+          {children(page, setPage)}
         </main>
       </div>
     </div>

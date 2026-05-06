@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { projetosApi } from '../utils/api';
-import { fmtBRL, fmtPct, fmtCF, fmtMargem } from '../utils/format';
+import { fmtBRL, fmtPct, fmtCF, fmtMargem, fmtBR } from '../utils/format';
 import { type Projeto, type Contrato, type StatusProjeto, STATUS_COLORS, REGIONAL_COLORS } from '../types';
 import { Table, StatusBadge, SectionHeader, FilterBar, Btn, Card, MetricCard } from '../components/ui';
 import ProjetoModal from '../components/ProjetoModal';
@@ -63,8 +63,8 @@ export default function PipelinePage({ contrato }: Props) {
     return (sA === -1 ? 99 : sA) - (sB === -1 ? 99 : sB);
   });
 
-  // Summary metrics
-  const total = projetos.reduce((s, p) => s + p.valor_liq, 0);
+  // Summary metrics — Closed Lost não entra no total
+  const total = projetos.filter(p => p.status !== 'Closed Lost').reduce((s, p) => s + p.valor_liq, 0);
   const byStat = (s: StatusProjeto) => projetos.filter(p => p.status === s).reduce((a, p) => a + p.valor_liq, 0);
   const closedWin = byStat('Closed Win');
   const commit = byStat('Commit');
@@ -85,7 +85,7 @@ export default function PipelinePage({ contrato }: Props) {
     },
     {
       key: 'br', header: 'BR', width: 90,
-      render: (row: Projeto) => <span style={{ fontSize: 11, color: 'var(--gray-600)', fontFamily: 'monospace' }}>{row.br}</span>,
+      render: (row: Projeto) => <span style={{ fontSize: 11, color: 'var(--gray-600)', fontFamily: 'monospace' }}>{fmtBR(row.br)}</span>,
     },
     {
       key: 'oportunidade', header: 'Oportunidade',

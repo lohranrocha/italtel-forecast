@@ -19,7 +19,8 @@ const emptyForm = () => ({
   regional: 'Enel RJ',
   br: '', did: '', oportunidade: '', cf: '0.7',
   valor_liq: '', valor_bruto: '',
-  solicitante: '', status_compra: '', status_po: '',
+  solicitante: '', solicitante_cargo: '', solicitante_telefone: '', solicitante_email: '',
+  status_compra: '', status_po: '',
   margem1: '', margem2: '',
 });
 
@@ -43,6 +44,9 @@ export default function ProjetoModal({ open, onClose, onSave, initial, defaultCo
         valor_liq: String(initial.valor_liq),
         valor_bruto: String(initial.valor_bruto),
         solicitante: initial.solicitante,
+        solicitante_cargo: initial.solicitante_cargo,
+        solicitante_telefone: initial.solicitante_telefone,
+        solicitante_email: initial.solicitante_email,
         status_compra: initial.status_compra,
         status_po: initial.status_po,
         margem1: String(initial.margem1),
@@ -75,6 +79,9 @@ export default function ProjetoModal({ open, onClose, onSave, initial, defaultCo
       valor_liq: parseFloat(form.valor_liq) || 0,
       valor_bruto: parseFloat(form.valor_bruto) || 0,
       solicitante: form.solicitante,
+      solicitante_cargo: form.solicitante_cargo,
+      solicitante_telefone: form.solicitante_telefone,
+      solicitante_email: form.solicitante_email,
       status_compra: form.status_compra,
       status_po: form.status_po,
       margem1: parseFloat(form.margem1) || 0,
@@ -152,6 +159,11 @@ export default function ProjetoModal({ open, onClose, onSave, initial, defaultCo
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <FormField label="DID"><Input value={form.did} onChange={e => set('did', e.target.value)} placeholder="DID do projeto" /></FormField>
             <FormField label="Solicitante"><Input value={form.solicitante} onChange={e => set('solicitante', e.target.value)} /></FormField>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+            <FormField label="Cargo do Solicitante"><Input value={form.solicitante_cargo} onChange={e => set('solicitante_cargo', e.target.value)} placeholder="Ex: Gerente" /></FormField>
+            <FormField label="Telefone"><Input value={form.solicitante_telefone} onChange={e => set('solicitante_telefone', e.target.value)} placeholder="(11) 99999-9999" /></FormField>
+            <FormField label="E-mail"><Input value={form.solicitante_email} onChange={e => set('solicitante_email', e.target.value)} placeholder="nome@empresa.com" /></FormField>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <FormField label="Status Compra"><Input value={form.status_compra} onChange={e => set('status_compra', e.target.value)} /></FormField>
